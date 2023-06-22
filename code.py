@@ -7,10 +7,9 @@ Created on Mon Jun 19 14:17:47 2023
 """
 
 # Import packages
-from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense,Conv2D,MaxPool2D,Flatten,Dropout, BatchNormalization
+from tensorflow.keras.layers import Dense,Conv2D,MaxPool2D,Flatten,Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 
 # Define the general path
@@ -70,7 +69,7 @@ model.compile(loss = 'categorical_crossentropy', optimizer ='adam', metrics= ['a
 model.summary()
 
 
-# Hyperparameters
+# Hyperparameters 
 STEP_SIZE_TRAIN = train_generator.n//train_generator.batch_size
 STEP_SIZE_VALID = valid_generator.n//valid_generator.batch_size
 # Stop the training when there is no improvement after 3 epochs trainings.
@@ -80,4 +79,61 @@ early_stop = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=
 model.fit(train_generator,steps_per_epoch=STEP_SIZE_TRAIN,
           validation_data=valid_generator,verbose= 1,
           validation_steps=STEP_SIZE_VALID,
-          epochs=15, callbacks=early_stop)
+          epochs=3, callbacks=early_stop)
+
+#Evaulate the Model
+model.evaluate(valid_generator,steps=STEP_SIZE_VALID)
+# Save the model
+model.save("Saif_DL_Model")
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Predict Output
+STEP_SIZE_TEST = test_generator.n//test_generator.batch_size
+test_generator.reset()
+pred=model.predict(test_generator,
+steps=STEP_SIZE_TEST,
+verbose=1)
+
+predicted_class_indices=np.argmax(pred,axis=1)
+
+labels = (train_generator.class_indices)
+labels = dict((v,k) for k,v in labels.items())
+predictions = [labels[k] for k in predicted_class_indices]
+current_idx = 0 
+count_accurate= 0
+Actual = []
+for i in predictions:
+    string = test_generator.filenames[current_idx]
+    substr = '/'
+    actual = string[:string.find(substr)]
+    Actual.append(actual)
+    pred = predictions[current_idx]
+    if actual == pred: 
+        count_accurate += 1
+    current_idx +=1
+acc = count_accurate/771
+print(f"The accuracy on predicted the test images is {round(acc*100,2)}%.")
+
+from sklearn.metrics import classification_report
+print(classification_report(Actual, predictions))
+
+# Selected some images to see its predictions
+current = [1,37,103,189,203,274,333,355,435,478,511,587,609,678,734,760]
+for i in current: 
+    plt.imshow(plt.imread(path+'test/'+test_generator.filenames[i]))
+    string = test_generator.filenames[i]
+    substr = '/'
+    actual = string[:string.find(substr)]
+    plt.title(f"True: {actual} \nPredicted: {predictions[i]}")
+    plt.show()
+    
+    
+import pandas as pd
+
+# Save results to csv file
+filenames=test_generator.filenames
+results=pd.DataFrame({"Filename":filenames,
+                      "Predictions":predictions})
+results.to_csv("results.csv",index=False)

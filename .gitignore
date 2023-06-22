@@ -2,3 +2,6 @@ val/
 train/
 test/
 .untitled0.py
+__pycache__
+Saif_DL_Model.zip
+Old_Results
